@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny - Pure Zero Trust
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Security Primitives ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        request.auth.token.email == 'kipkemoijared855@gmail.com'
+      );
+    }
+    function isDoctor() { 
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor'; 
+    }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Validation Blueprints (Anti-Update-Gap) ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'displayName']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.role in ['patient', 'doctor', 'admin'] &&
+             (data.role == 'patient' || isAdmin()); // Protect admin role escalation
+    }
+
+    function isValidAppointment(data) {
+      return data.userId == request.auth.uid &&
+             isValidId(data.doctorId) &&
+             data.status in ['pending', 'confirmed', 'cancelled', 'completed'] &&
+             data.date is string && data.date.size() <= 10 &&
+             data.time is string && data.time.size() <= 8;
+    }
+
+    function isValidMessage(data) {
+      return data.senderId == request.auth.uid &&
+             isValidId(data.receiverId) &&
+             data.content is string && data.content.size() <= 2000;
+    }
+
+    // --- Collection Routes ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      // Tiered Identity: Owners can update profile but not role
+      allow update: if isOwner(userId) && 
+                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']) || isAdmin();
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /departments/{depId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /appointments/{appId} {
+      // Create: Verify doctor exists and data is valid
+      allow create: if isSignedIn() && isValidAppointment(incoming()) && 
+                      exists(/databases/$(database)/documents/doctors/$(incoming().doctorId));
+      
+      // Read: List queries must be scoped to own ID unless admin/doctor
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isDoctor());
+      allow get: if isOwner(existing().userId) || isAdmin() || isDoctor();
+
+      // Update: Action-based permissions
+      allow update: if (
+        // Action: Cancel (User)
+        (isOwner(existing().userId) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status']) && 
+         incoming().status == 'cancelled' && 
+         existing().status == 'pending') ||
+        // Action: Manage (Admin/Doctor)
+        ((isAdmin() || isDoctor()) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes']))
+      );
+    }
+
+    match /reports/{reportId} {
+      allow read: if isOwner(existing().userId) || isAdmin() || isDoctor();
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isDoctor());
+      allow create: if isOwner(incoming().userId);
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{msgId} {
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if isSignedIn() && isValidMessage(incoming());
+    }
+  }
+}

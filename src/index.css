@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-medical-primary: #10b981; /* Emerald 500 */
+  --color-medical-secondary: #059669; /* Emerald 600 */
+  --color-medical-dark: #064e3b; /* Emerald 900 */
+  --color-medical-light: #ecfdf5; /* Emerald 50 */
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-50 text-slate-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-2 bg-medical-primary text-white rounded-lg font-medium hover:bg-medical-secondary transition-colors shadow-sm;
+  }
+  
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-lg;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-medical-primary/30 rounded-full hover:bg-medical-primary/50;
+}

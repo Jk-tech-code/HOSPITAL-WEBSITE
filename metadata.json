@@ -1,0 +1,6 @@
+{
+  "name": "HealthGuard Hospital",
+  "description": "A comprehensive hospital management system featuring appointment booking, patient dashboards, secure messaging, and an admin panel.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": []
+}

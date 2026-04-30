@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["patient", "doctor", "admin"] },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Healthcare professional details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "specialization": { "type": "string" },
+        "department": { "type": "string" },
+        "bio": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "experience": { "type": "string" }
+      },
+      "required": ["name", "specialization", "department"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Medical department",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Patient appointment booking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "completed"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "doctorId", "date", "time", "status"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Medical report or document",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "fileURL": { "type": "string" },
+        "uploadedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "uploadedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat message between user and doctor/admin",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "receiverId", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User accounts"
+    },
+    "doctors": {
+      "schema": "Doctor",
+      "description": "Doctors information"
+    },
+    "departments": {
+      "schema": "Department",
+      "description": "Hospital departments"
+    },
+    "appointments": {
+      "schema": "Appointment",
+      "description": "Booked appointments"
+    },
+    "reports": {
+      "schema": "Report",
+      "description": "Patient medical reports"
+    },
+    "messages": {
+      "schema": "Message",
+      "description": "Communication channel"
+    }
+  }
+}
