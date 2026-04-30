@@ -50,6 +50,7 @@
         "time": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "completed"] },
         "notes": { "type": "string" },
+        "reminderSent": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "doctorId", "date", "time", "status"]

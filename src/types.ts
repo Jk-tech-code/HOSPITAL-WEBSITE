@@ -3,6 +3,9 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: 'patient' | 'doctor' | 'admin';
+  idNumber?: string;
+  phoneNumber?: string;
+  verified?: boolean;
   photoURL?: string;
   createdAt: any;
 }
@@ -15,6 +18,7 @@ export interface Doctor {
   bio: string;
   photoURL: string;
   experience: string;
+  blockedSlots?: { date: string; time: string }[];
 }
 
 export interface Department {
@@ -33,6 +37,7 @@ export interface Appointment {
   time: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   notes?: string;
+  reminderSent?: boolean;
   createdAt: any;
 }
 

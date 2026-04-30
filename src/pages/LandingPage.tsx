@@ -11,14 +11,14 @@ export default function LandingPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       const docsSnap = await getDocs(collection(db, 'doctors'));
       const depsSnap = await getDocs(collection(db, 'departments'));
       
       setDoctors(docsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor)));
       setDepartments(depsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Department)));
     };
-    fetchData();
+    loadData();
   }, []);
 
   const defaultDeps = [
@@ -55,10 +55,10 @@ export default function LandingPage() {
               <span>Accredited Healthcare Facility</span>
             </div>
             <h1 className="text-6xl md:text-7xl font-display font-bold text-slate-900 leading-tight mb-6">
-              Your Health is Our <span className="text-medical-primary">Mandate.</span>
+              Your Health is Our <span className="text-medical-primary">Priority.</span>
             </h1>
             <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-              Experience world-class medical services with HealthGuard. 
+              Experience world-class medical services with Hopekim Hospital. 
               Our team of expert doctors and state-of-the-art technology are here to ensure your well-being.
             </p>
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
@@ -164,7 +164,7 @@ export default function LandingPage() {
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center space-x-2 mb-6">
               <Activity className="h-8 w-8 text-medical-primary" />
-              <span className="text-2xl font-display font-bold text-white">HealthGuard</span>
+              <span className="text-2xl font-display font-bold text-white">Hopekim</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed mb-6">
               Leading the way in medical excellence and patient-centered care. Your partner in health since 1998.
@@ -187,7 +187,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-slate-800 text-center text-xs">
-          © {new Date().getFullYear()} HealthGuard Hospital. All rights reserved.
+          © {new Date().getFullYear()} Hopekim Hospital. All rights reserved.
         </div>
       </footer>
     </div>

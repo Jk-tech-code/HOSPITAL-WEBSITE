@@ -1,10 +1,10 @@
 {
-  "projectId": "jacob-kiptoo-client-0966470649",
+  "projectId": "gen-lang-client-0966470649",
   "appId": "1:571509481387:web:2730b68db118b1727abcee",
   "apiKey": "AIzaSyCxdlKi0q2pfWOkXzlXBTMONYJCVBm0qU8",
-  "authDomain": "jacob-kiptoo-client-0966470649.firebaseapp.com",
-  "firestoreDatabaseId": "jk-tech-63ca01de-36b5-4e90-8f4b-46ada43182fe",
-  "storageBucket": "jacob-kiptoo-client-0966470649.firebasestorage.app",
+  "authDomain": "gen-lang-client-0966470649.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-63ca01de-36b5-4e90-8f4b-46ada43182fe",
+  "storageBucket": "gen-lang-client-0966470649.firebasestorage.app",
   "messagingSenderId": "571509481387",
   "measurementId": ""
 }

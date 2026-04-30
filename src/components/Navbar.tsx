@@ -16,7 +16,7 @@ export default function Navbar() {
             <div className="p-2 bg-medical-primary rounded-lg group-hover:rotate-12 transition-transform">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-display font-bold text-slate-900">HealthGuard</span>
+            <span className="text-xl font-display font-bold text-slate-900">Hopekim</span>
           </Link>
 
           {/* Desktop Nav */}

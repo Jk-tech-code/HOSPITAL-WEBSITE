@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { Appointment, Doctor, Report, Message } from '../types';
-import { Calendar, FileText, MessageSquare, Plus, Clock, CheckCircle2, XCircle, Send } from 'lucide-react';
+import { Calendar, FileText, MessageSquare, Plus, Clock, CheckCircle2, XCircle, Send, Settings, User as UserIcon, Camera, Save, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { format } from 'date-fns';
+import { format, isBefore, startOfToday } from 'date-fns';
+
+const AVAILABLE_TIMES = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
 
 export default function PatientDashboard() {
   const { profile, user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'reports' | 'messages'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'reports' | 'messages' | 'settings'>('appointments');
+  
+  // Profile Edit State
+  const [editMode, setEditMode] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState(profile?.displayName || '');
+  const [newPhotoURL, setNewPhotoURL] = useState(profile?.photoURL || '');
+  const [updateLoading, setUpdateLoading] = useState(false);
   
   // Booking Form State
   const [showBooking, setShowBooking] = useState(false);
@@ -39,6 +48,10 @@ export default function PatientDashboard() {
       setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
     });
 
+    const unsubAllApp = onSnapshot(collection(db, 'appointments'), (snap) => {
+      setAllAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
+    });
+
     const qRep = query(collection(db, 'reports'), where('userId', '==', user.uid), orderBy('uploadedAt', 'desc'));
     const unsubRep = onSnapshot(qRep, (snap) => {
       setReports(snap.docs.map(d => ({ id: d.id, ...d.data() } as Report)));
@@ -49,8 +62,15 @@ export default function PatientDashboard() {
       setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() } as Message)));
     });
 
-    return () => { unsubApp(); unsubRep(); unsubMsg(); };
+    return () => { unsubApp(); unsubAllApp(); unsubRep(); unsubMsg(); };
   }, [user]);
+
+  const isSlotUnavailable = (docId: string, dDate: string, dTime: string) => {
+    const doctor = doctors.find(d => d.id === docId);
+    const isBlocked = doctor?.blockedSlots?.some(s => s.date === dDate && s.time === dTime);
+    const isBooked = allAppointments.some(a => a.doctorId === docId && a.date === dDate && a.time === dTime && a.status !== 'cancelled');
+    return isBlocked || isBooked;
+  };
 
   const handleBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +111,27 @@ export default function PatientDashboard() {
     }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setUpdateLoading(true);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        displayName: newDisplayName,
+        photoURL: newPhotoURL,
+        updatedAt: serverTimestamp()
+      });
+      setEditMode(false);
+      alert('Profile updated successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update profile');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
@@ -113,6 +154,7 @@ export default function PatientDashboard() {
           { id: 'appointments', label: 'Appointments', icon: <Calendar className="h-4 w-4" /> },
           { id: 'reports', label: 'Medical Reports', icon: <FileText className="h-4 w-4" /> },
           { id: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> },
+          { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -254,6 +296,99 @@ export default function PatientDashboard() {
                 </form>
               </motion.div>
           )}
+
+          {activeTab === 'settings' && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="max-w-2xl mx-auto w-full"
+            >
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden text-left">
+                <div className="h-32 bg-medical-primary/10 relative">
+                  <div className="absolute -bottom-12 left-8">
+                    <div className="relative group">
+                      <img 
+                        src={profile?.photoURL || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&q=80&w=200'} 
+                        className="w-24 h-24 rounded-2xl border-4 border-white shadow-md object-cover"
+                        alt="Profile"
+                      />
+                      <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer" onClick={() => setEditMode(true)}>
+                        <Camera className="h-6 w-6" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-16 p-8">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-2xl font-display font-bold text-slate-900">{profile?.displayName}</h3>
+                      <p className="text-slate-500">{profile?.email} • Patient</p>
+                    </div>
+                    {!editMode && (
+                      <button 
+                        onClick={() => setEditMode(true)}
+                        className="px-6 py-2 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                      >
+                        Edit Profile
+                      </button>
+                    )}
+                  </div>
+
+                  <form onSubmit={handleUpdateProfile} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Display Name</label>
+                        <div className="relative">
+                          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                          <input 
+                            disabled={!editMode}
+                            value={newDisplayName}
+                            onChange={(e) => setNewDisplayName(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-primary outline-none disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Profile Photo URL</label>
+                        <div className="relative">
+                          <Camera className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                          <input 
+                            disabled={!editMode}
+                            value={newPhotoURL}
+                            onChange={(e) => setNewPhotoURL(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-primary outline-none disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {editMode && (
+                      <div className="flex space-x-4 pt-4">
+                        <button 
+                          type="button" 
+                          onClick={() => setEditMode(false)}
+                          className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          disabled={updateLoading}
+                          type="submit"
+                          className="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center space-x-2"
+                        >
+                          <Save className="h-5 w-5" />
+                          <span>{updateLoading ? 'Saving...' : 'Save Changes'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
@@ -288,27 +423,45 @@ export default function PatientDashboard() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
                   <input 
                     required
                     type="date" 
+                    min={format(startOfToday(), 'yyyy-MM-dd')}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-primary outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Preffered Time</label>
-                  <input 
-                    required
-                    type="time" 
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-primary outline-none"
-                  />
-                </div>
+                {date && selectedDoctor && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Available Slots</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {AVAILABLE_TIMES.map(slot => {
+                        const unavailable = isSlotUnavailable(selectedDoctor, date, slot);
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            disabled={unavailable}
+                            onClick={() => setTime(slot)}
+                            className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                              time === slot 
+                                ? 'bg-medical-primary border-medical-primary text-white' 
+                                : unavailable 
+                                  ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed' 
+                                  : 'bg-white border-slate-200 text-slate-600 hover:border-medical-primary'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
