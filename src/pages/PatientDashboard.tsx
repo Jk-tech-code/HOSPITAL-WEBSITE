@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { Appointment, Doctor, Report, Message } from '../types';
-import { Calendar, FileText, MessageSquare, Plus, Clock, CheckCircle2, XCircle, Send, Settings, User as UserIcon, Camera, Save, Lock } from 'lucide-react';
+import { Calendar, FileText, MessageSquare, Plus, Clock, CheckCircle2, XCircle, Send, Settings, User as UserIcon, Camera, Save, Lock, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isBefore, startOfToday } from 'date-fns';
 
@@ -22,6 +22,34 @@ export default function PatientDashboard() {
   const [newDisplayName, setNewDisplayName] = useState(profile?.displayName || '');
   const [newPhotoURL, setNewPhotoURL] = useState(profile?.photoURL || '');
   const [updateLoading, setUpdateLoading] = useState(false);
+  
+  // Notification Preferences
+  const [notifPrefs, setNotifPrefs] = useState({
+    appointments: true,
+    messages: true,
+    reports: true
+  });
+
+  useEffect(() => {
+    if (profile?.notifications) {
+      setNotifPrefs(profile.notifications);
+    }
+  }, [profile]);
+
+  const toggleNotification = async (type: keyof typeof notifPrefs) => {
+    if (!user) return;
+    const newPrefs = { ...notifPrefs, [type]: !notifPrefs[type] };
+    setNotifPrefs(newPrefs);
+    
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        notifications: newPrefs
+      });
+    } catch (err) {
+      console.error("Failed to update notification preferences:", err);
+    }
+  };
   
   // Booking Form State
   const [showBooking, setShowBooking] = useState(false);
@@ -386,9 +414,105 @@ export default function PatientDashboard() {
                     )}
                   </form>
                 </div>
+
+                {/* Notification Settings Section */}
+                <div className="border-t border-slate-100 p-8 space-y-6">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Bell className="h-5 w-5 text-medical-primary" />
+                    <h4 className="font-bold text-slate-900">Communication Preferences</h4>
+                  </div>
+                  <p className="text-sm text-slate-500 mb-6 font-medium">Manage how you receive alerts about your healthcare activity.</p>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-medical-primary/30 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 bg-white rounded-xl shadow-sm text-medical-primary">
+                          <Clock className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">Appointment Reminders</p>
+                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">SMS & Push</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => toggleNotification('appointments')}
+                        className={`w-12 h-6 rounded-full relative transition-colors duration-200 ${notifPrefs.appointments ? 'bg-medical-primary' : 'bg-slate-300'}`}
+                      >
+                        <motion.div 
+                          animate={{ x: notifPrefs.appointments ? 24 : 2 }}
+                          className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                        />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-medical-primary/30 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 bg-white rounded-xl shadow-sm text-medical-primary">
+                          <MessageSquare className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">New Messages</p>
+                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Direct Inbox Alerts</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => toggleNotification('messages')}
+                        className={`w-12 h-6 rounded-full relative transition-colors duration-200 ${notifPrefs.messages ? 'bg-medical-primary' : 'bg-slate-300'}`}
+                      >
+                        <motion.div 
+                          animate={{ x: notifPrefs.messages ? 24 : 2 }}
+                          className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                        />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-medical-primary/30 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 bg-white rounded-xl shadow-sm text-medical-primary">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">Report Availability</p>
+                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Laboratory Results</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => toggleNotification('reports')}
+                        className={`w-12 h-6 rounded-full relative transition-colors duration-200 ${notifPrefs.reports ? 'bg-medical-primary' : 'bg-slate-300'}`}
+                      >
+                        <motion.div 
+                          animate={{ x: notifPrefs.reports ? 24 : 2 }}
+                          className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 p-6 bg-slate-900 rounded-[32px] text-white overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-medical-primary/20 blur-3xl -mr-16 -mt-16" />
+                    <h5 className="font-bold mb-2">Enable Browser Notifications</h5>
+                    <p className="text-xs text-white/60 leading-relaxed max-w-[240px]">Get instant alerts even when the dashboard is closed. Highly recommended for emergency updates.</p>
+                    <button 
+                      onClick={async () => {
+                        if ('Notification' in window) {
+                          const permission = await Notification.requestPermission();
+                          if (permission === 'granted') {
+                            alert('Notifications successfully enabled!');
+                          }
+                        } else {
+                          alert('This browser does not support desktop notifications.');
+                        }
+                      }}
+                      className="mt-6 px-6 py-2.5 bg-medical-primary text-white text-xs font-bold rounded-xl hover:bg-medical-secondary transition-colors"
+                    >
+                      Request Permission
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
 

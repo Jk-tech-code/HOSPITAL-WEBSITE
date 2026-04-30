@@ -45,7 +45,8 @@ export default function AdminDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [patients, setPatients] = useState<UserProfile[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'doctors' | 'patients' | 'reminders' | 'settings' | 'schedules'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'doctors' | 'patients' | 'reminders' | 'settings'>('appointments');
+  const [doctorSubTab, setDoctorSubTab] = useState<'list' | 'availability'>('list');
   const [filter, setFilter] = useState('all');
 
   const [remindersLoading, setRemindersLoading] = useState(false);
@@ -218,7 +219,6 @@ export default function AdminDashboard() {
         {[
           { id: 'appointments', label: 'All Appointments', icon: <Calendar className="h-5 w-5" /> },
           { id: 'doctors', label: 'Doctor Management', icon: <Stethoscope className="h-5 w-5" /> },
-          { id: 'schedules', label: 'Doctor Availability', icon: <Calendar className="h-5 w-5 text-indigo-500" /> },
           { id: 'patients', label: 'Patient Database', icon: <User className="h-5 w-5" /> },
           { id: 'reminders', label: 'SMS/Email Automation', icon: <Bell className="h-5 w-5" /> },
           { id: 'settings', label: 'Admin Settings', icon: <Settings className="h-5 w-5" /> },
@@ -319,147 +319,163 @@ export default function AdminDashboard() {
 
           {activeTab === 'doctors' && (
             <motion.div 
-               key="doctors"
+               key="doctors-view"
                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-               className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+               className="p-8"
             >
-              {doctors.map(doc => (
-                <div 
-                  key={doc.id} 
-                  onClick={() => setSelectedDoctorProfile(doc)}
-                  className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 relative group cursor-pointer hover:border-medical-primary transition-all hover:bg-white hover:shadow-xl hover:shadow-medical-primary/5"
+              <div className="flex items-center space-x-4 mb-8 bg-slate-50 p-2 rounded-2xl w-fit">
+                <button 
+                  onClick={() => setDoctorSubTab('list')}
+                  className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${doctorSubTab === 'list' ? 'bg-white text-medical-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteDoctor(doc.id);
-                    }}
-                    className="absolute top-4 right-4 p-2 bg-white text-red-500 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                  <img src={doc.photoURL} alt={doc.name} className="w-16 h-16 rounded-2xl object-cover mb-4" />
-                  <h4 className="font-bold text-slate-900">{doc.name}</h4>
-                  <p className="text-xs font-bold text-medical-primary uppercase tracking-widest mt-1">{doc.specialization}</p>
-                  <div className="mt-4 pt-4 border-t border-slate-200 text-sm text-slate-500 flex justify-between items-center">
-                     <span>Dept: {doc.department}</span>
-                     <span className="text-[10px] font-bold text-slate-400">VIEW PROFILE →</span>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-
-          {activeTab === 'schedules' && (
-            <motion.div
-              key="schedules"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-8"
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <div>
-                  <h3 className="text-2xl font-display font-bold text-slate-900">Availability Management</h3>
-                  <p className="text-slate-500 text-sm">Control doctor schedules and block operational times.</p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <select 
-                    value={selectedDoctorId || ''}
-                    onChange={(e) => setSelectedDoctorId(e.target.value)}
-                    className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-medical-primary"
-                  >
-                    <option value="">Select a Specialist</option>
-                    {doctors.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
+                  Doctor List
+                </button>
+                <button 
+                  onClick={() => setDoctorSubTab('availability')}
+                  className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${doctorSubTab === 'availability' ? 'bg-white text-medical-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Doctor Availability
+                </button>
               </div>
 
-              {selectedDoctorId ? (
-                <div className="space-y-8">
-                  {/* Calendar Navigation */}
-                  <div className="flex items-center justify-between bg-slate-900 p-4 rounded-2xl text-white">
-                    <button 
-                      onClick={() => setCurrentScheduleDate(subWeeks(currentScheduleDate, 1))}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              {doctorSubTab === 'list' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {doctors.map(doc => (
+                    <div 
+                      key={doc.id} 
+                      onClick={() => setSelectedDoctorProfile(doc)}
+                      className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 relative group cursor-pointer hover:border-medical-primary transition-all hover:bg-white hover:shadow-xl hover:shadow-medical-primary/5"
                     >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <h4 className="font-bold uppercase tracking-widest text-xs">
-                      {formatFns(startOfWeek(currentScheduleDate), 'MMM d')} - {formatFns(endOfWeek(currentScheduleDate), 'MMM d, yyyy')}
-                    </h4>
-                    <button 
-                      onClick={() => setCurrentScheduleDate(addWeeks(currentScheduleDate, 1))}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-4">
-                    {eachDayOfInterval({
-                      start: startOfWeek(currentScheduleDate),
-                      end: endOfWeek(currentScheduleDate)
-                    }).map((day) => {
-                      const dayStr = formatFns(day, 'yyyy-MM-dd');
-                      const doctor = doctors.find(d => d.id === selectedDoctorId);
-                      const dayAppointments = appointments.filter(a => a.doctorId === selectedDoctorId && a.date === dayStr);
-                      const blockedSlots = doctor?.blockedSlots || [];
-
-                      return (
-                        <div key={dayStr} className="space-y-3">
-                          <div className={`p-4 rounded-2xl text-center border transition-all ${isSameDay(day, startOfToday()) ? 'bg-medical-primary text-white border-medical-primary shadow-lg shadow-medical-primary/20' : 'bg-slate-50 border-slate-100'}`}>
-                            <p className="text-[10px] font-bold uppercase opacity-60 mb-1">{formatFns(day, 'EEE')}</p>
-                            <p className="text-xl font-bold font-display">{formatFns(day, 'd')}</p>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            {['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'].map(time => {
-                              const isBlocked = blockedSlots.some(s => s.date === dayStr && s.time === time);
-                              const appointment = dayAppointments.find(a => a.time === time);
-                              
-                              return (
-                                <button
-                                  key={time}
-                                  onClick={() => !appointment && handleToggleBlockSlot(selectedDoctorId, dayStr, time)}
-                                  className={`w-full p-3 rounded-xl text-left border relative transition-all group overflow-hidden ${
-                                    appointment 
-                                      ? 'bg-blue-50 border-blue-100' 
-                                      : isBlocked 
-                                        ? 'bg-slate-800 border-slate-900 text-slate-400' 
-                                        : 'bg-white border-slate-100 hover:border-medical-primary hover:bg-medical-primary/5'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-bold">{time}</span>
-                                    {appointment ? (
-                                       <Calendar className="h-3 w-3 text-blue-400" />
-                                    ) : isBlocked ? (
-                                       <Lock className="h-3 w-3 text-slate-500" />
-                                    ) : (
-                                       <Plus className="h-3 w-3 text-slate-300 group-hover:text-medical-primary" />
-                                    )}
-                                  </div>
-                                  <p className={`text-[10px] font-bold mt-1 truncate ${
-                                    appointment ? 'text-blue-600' : isBlocked ? 'text-slate-500 uppercase' : 'text-slate-400'
-                                  }`}>
-                                    {appointment ? `Reserved: ${appointment.status}` : isBlocked ? 'Blocked Off' : 'Available'}
-                                  </p>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteDoctor(doc.id);
+                        }}
+                        className="absolute top-4 right-4 p-2 bg-white text-red-500 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <img src={doc.photoURL} alt={doc.name} className="w-16 h-16 rounded-2xl object-cover mb-4" />
+                      <h4 className="font-bold text-slate-900">{doc.name}</h4>
+                      <p className="text-xs font-bold text-medical-primary uppercase tracking-widest mt-1">{doc.specialization}</p>
+                      <div className="mt-4 pt-4 border-t border-slate-200 text-sm text-slate-500 flex justify-between items-center">
+                         <span>Dept: {doc.department}</span>
+                         <span className="text-[10px] font-bold text-slate-400">VIEW PROFILE →</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="p-20 text-center border-2 border-dashed border-slate-100 rounded-[40px]">
-                   <Stethoscope className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                   <h4 className="text-xl font-bold text-slate-400">Select a Specialist to manage their calendar</h4>
+                <div className="space-y-8">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Schedule Control Panel</h3>
+                      <p className="text-slate-500 text-sm">Select a specialist to manage their operational hours.</p>
+                    </div>
+                    <select 
+                      value={selectedDoctorId || ''}
+                      onChange={(e) => setSelectedDoctorId(e.target.value)}
+                      className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-medical-primary"
+                    >
+                      <option value="">Select a Specialist</option>
+                      {doctors.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedDoctorId ? (
+                    <div className="space-y-6">
+                      {/* Calendar Navigation */}
+                      <div className="flex items-center justify-between bg-slate-900 p-4 rounded-2xl text-white">
+                        <button 
+                          onClick={() => setCurrentScheduleDate(subWeeks(currentScheduleDate, 1))}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <h4 className="font-bold uppercase tracking-widest text-xs">
+                          {formatFns(startOfWeek(currentScheduleDate), 'MMM d')} - {formatFns(endOfWeek(currentScheduleDate), 'MMM d, yyyy')}
+                        </h4>
+                        <button 
+                          onClick={() => setCurrentScheduleDate(addWeeks(currentScheduleDate, 1))}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Calendar Grid */}
+                      <div className="grid grid-cols-7 gap-4">
+                        {eachDayOfInterval({
+                          start: startOfWeek(currentScheduleDate),
+                          end: endOfWeek(currentScheduleDate)
+                        }).map((day) => {
+                          const dayStr = formatFns(day, 'yyyy-MM-dd');
+                          const doctor = doctors.find(d => d.id === selectedDoctorId);
+                          const dayAppointments = appointments.filter(a => a.doctorId === selectedDoctorId && a.date === dayStr);
+                          const blockedSlots = doctor?.blockedSlots || [];
+
+                          return (
+                            <div key={dayStr} className="space-y-3">
+                              <div className={`p-4 rounded-2xl text-center border transition-all ${isSameDay(day, startOfToday()) ? 'bg-medical-primary text-white border-medical-primary shadow-lg shadow-medical-primary/20' : 'bg-slate-50 border-slate-100'}`}>
+                                <p className="text-[10px] font-bold uppercase opacity-60 mb-1">{formatFns(day, 'EEE')}</p>
+                                <p className="text-xl font-bold font-display">{formatFns(day, 'd')}</p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                {['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'].map(time => {
+                                  const isBlocked = blockedSlots.some(s => s.date === dayStr && s.time === time);
+                                  const appointment = dayAppointments.find(a => a.time === time);
+                                  
+                                  return (
+                                    <button
+                                      key={time}
+                                      onClick={() => !appointment && handleToggleBlockSlot(selectedDoctorId, dayStr, time)}
+                                      className={`w-full p-3 rounded-xl text-left border relative transition-all group overflow-hidden ${
+                                        appointment 
+                                          ? 'bg-blue-50 border-blue-100' 
+                                          : isBlocked 
+                                            ? 'bg-slate-800 border-slate-900 text-slate-400' 
+                                            : 'bg-white border-slate-100 hover:border-medical-primary hover:bg-medical-primary/5'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold">{time}</span>
+                                        {appointment ? (
+                                           <div className="flex items-center space-x-1">
+                                             <span className="text-[8px] font-bold text-blue-400">PATIENT IN</span>
+                                             <Calendar className="h-3 w-3 text-blue-400" />
+                                           </div>
+                                        ) : isBlocked ? (
+                                           <Lock className="h-3 w-3 text-slate-500" />
+                                        ) : (
+                                           <Plus className="h-3 w-3 text-slate-300 group-hover:text-medical-primary" />
+                                        )}
+                                      </div>
+                                      <p className={`text-[10px] font-bold mt-1 truncate ${
+                                        appointment ? 'text-blue-600' : isBlocked ? 'text-slate-500 uppercase' : 'text-slate-400'
+                                      }`}>
+                                        {appointment ? `Reserved: ${appointment.status}` : isBlocked ? 'Blocked' : 'Free Slot'}
+                                      </p>
+                                      {appointment && (
+                                        <p className="text-[8px] text-blue-500/60 font-medium truncate mt-0.5">UID: {appointment.userId.slice(0, 8)}</p>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-20 text-center border-2 border-dashed border-slate-100 rounded-[40px]">
+                       <Stethoscope className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                       <h4 className="text-xl font-bold text-slate-400">Select a Specialist to manage their availability</h4>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
